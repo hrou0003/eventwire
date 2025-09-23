@@ -26,11 +26,17 @@ fn handle_connection(stream: &mut impl ReadWrite) {
         return;
     }
     let message_size = u32::from_be_bytes(size_buffer);
+    dbg!(message_size);
 
     let mut message_buffer = vec![0; message_size as usize];
-    if stream.read_exact(&mut message_buffer).is_err() {
-        println!("error: failed to read message body");
-        return;
+    match stream.read(&mut message_buffer) {
+        Err(e) => {
+            dbg!("error: failed to read message body {}", e);
+            return;
+        }
+        Ok(_) => {
+            dbg!(&message_buffer);
+        }
     }
 
     match Header::from_bytes(&message_buffer) {
@@ -42,7 +48,6 @@ fn handle_connection(stream: &mut impl ReadWrite) {
                 request_api_version: header.request_api_version,
                 correlation_id: header.correlation_id,
                 client_id: None,
-                tag_buffer: None,
             };
 
             println!("sending response header {:?}", header);
@@ -71,13 +76,12 @@ fn handle_connection(stream: &mut impl ReadWrite) {
 trait ReadWrite: Read + Write {}
 impl<T: Read + Write> ReadWrite for T {}
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Header {
     pub request_api_key: i16,
     pub request_api_version: i16,
     pub correlation_id: i32,
     pub client_id: Option<String>,
-    pub tag_buffer: Option<Vec<u8>>,
 }
 
 impl Header {
@@ -105,21 +109,11 @@ impl Header {
             Some(String::from_utf8(str_buf).unwrap())
         };
 
-        let remaining_len = bytes.len() - cursor.position() as usize;
-        let tag_buffer = if remaining_len > 0 {
-            let mut buf = vec![0; remaining_len];
-            cursor.read_exact(&mut buf)?;
-            Some(buf)
-        } else {
-            None
-        };
-
         Ok(Header {
             request_api_key,
             request_api_version,
             correlation_id,
             client_id,
-            tag_buffer,
         })
     }
 
@@ -132,5 +126,93 @@ impl Header {
             buffer.extend_from_slice(&(client_id.len() as i16).to_be_bytes());
         }
         buffer
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Result;
+
+    // A mock stream that reads from an input buffer and writes to an output buffer
+    struct MockStream {
+        input: Cursor<Vec<u8>>,
+        output: Vec<u8>,
+    }
+
+    impl Read for MockStream {
+        fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
+            self.input.read(buf)
+        }
+    }
+
+    impl Write for MockStream {
+        fn write(&mut self, buf: &[u8]) -> Result<usize> {
+            self.output.write(buf)
+        }
+
+        fn flush(&mut self) -> Result<()> {
+            self.output.flush()
+        }
+    }
+
+    #[test]
+    fn test_bytes_to_header() {
+        let hex_payload =
+            "00000023001200046f7fc66100096b61666b612d636c69000a6b61666b612d636c6904302e3100";
+        let input_bytes = hex::decode(hex_payload).expect("Failed to decode hex");
+        dbg!(&input_bytes);
+        let expected_header = Header {
+            request_api_key: 18,
+            request_api_version: 4,
+            correlation_id: 1240818514,
+            client_id: Some("kafka-tester".to_string()),
+        };
+        let header = Header::from_bytes(&input_bytes).unwrap();
+        assert_eq!(header, expected_header);
+    }
+
+    #[test]
+    fn test_header_to_bytes() {
+        let hex_payload =
+            "00000023001200046f7fc66100096b61666b612d636c69000a6b61666b612d636c6904302e3100";
+        let input_bytes = hex::decode(hex_payload).expect("Failed to decode hex");
+        let expected_header = Header {
+            request_api_key: 0x0012,
+            request_api_version: 0x0004,
+            correlation_id: 0x6f7fc661,
+            client_id: Some("kafka".to_string()),
+        };
+        let expected_bytes = expected_header.to_bytes();
+        assert_eq!(input_bytes, expected_bytes);
+    }
+
+    #[test]
+    fn test_handle_connection_with_provided_message() {
+        // Hex string: 00000023001200046f7fc66100096b61666b612d636c6900
+        let hex_payload =
+            "00000023001200046f7fc66100096b61666b612d636c69000a6b61666b612d636c6904302e3100";
+        let input_bytes = hex::decode(hex_payload).expect("Failed to decode hex");
+        dbg!(&input_bytes);
+
+        let mut stream = MockStream {
+            input: Cursor::new(input_bytes),
+            output: Vec::new(),
+        };
+
+        handle_connection(&mut stream);
+
+        // Based on the logic in to_bytes(), the response should contain:
+        // - api_key (i16): 0x0012
+        // - api_version (i16): 0x0004
+        // - correlation_id (i32): 0x6f7fc661
+        // - client_id_len (i16): -1 (0xffff) for None
+        // - tagged_fields (u8): 0 for zero tagged fields
+        // Total payload length is 2+2+4+2+1 = 11 bytes (0x0b)
+        // The full response is the size prefix + payload.
+        let expected_hex_response = "0000000b001200046f7fc661ffff00";
+        let expected_output = hex::decode(expected_hex_response).unwrap();
+
+        assert_eq!(stream.output, expected_output);
     }
 }
