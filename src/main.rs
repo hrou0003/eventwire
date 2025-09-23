@@ -62,7 +62,10 @@ fn handle_connection(stream: &mut impl ReadWrite) {
                 return;
             }
 
-            if stream.write_all(&response_bytes).is_err() {
+            if stream
+                .write_all(&header.correlation_id.to_be_bytes())
+                .is_err()
+            {
                 println!("Error writing response message");
                 return;
             }
