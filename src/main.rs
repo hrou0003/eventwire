@@ -45,6 +45,8 @@ fn handle_connection(stream: &mut impl ReadWrite) {
                 tag_buffer: None,
             };
 
+            println!("sending response header {:?}", header);
+
             let response_bytes = response_header.to_bytes();
             let response_len = response_bytes.len() as u32;
 
