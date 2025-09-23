@@ -53,7 +53,7 @@ fn handle_connection(stream: &mut impl ReadWrite) {
             println!("sending response header {:?}", header);
 
             let response_bytes = response_header.to_bytes();
-            let response_len = response_bytes.len() as u32;
+            let response_len: i32 = 0;
 
             dbg!(&response_bytes);
 
@@ -80,6 +80,12 @@ fn handle_connection(stream: &mut impl ReadWrite) {
 // A trait for mocking the stream in tests
 trait ReadWrite: Read + Write {}
 impl<T: Read + Write> ReadWrite for T {}
+
+#[derive()]
+pub struct Response {
+    pub message_size: i32,
+    pub header: Header,
+}
 
 #[derive(Debug, PartialEq)]
 pub struct Header {
