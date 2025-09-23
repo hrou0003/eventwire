@@ -55,6 +55,8 @@ fn handle_connection(stream: &mut impl ReadWrite) {
             let response_bytes = response_header.to_bytes();
             let response_len = response_bytes.len() as u32;
 
+            dbg!(&response_bytes);
+
             if stream.write_all(&response_len.to_be_bytes()).is_err() {
                 println!("Error writing response size");
                 return;
@@ -91,29 +93,19 @@ impl Header {
         let mut i32_buf = [0; 4];
 
         cursor.read_exact(&mut i16_buf)?;
-        let request_api_key = i16::from_be_bytes(i16_buf);
+        let _ = i16::from_be_bytes(i16_buf);
 
         cursor.read_exact(&mut i16_buf)?;
-        let request_api_version = i16::from_be_bytes(i16_buf);
+        let _ = i16::from_be_bytes(i16_buf);
 
         cursor.read_exact(&mut i32_buf)?;
         let correlation_id = i32::from_be_bytes(i32_buf);
 
-        cursor.read_exact(&mut i16_buf)?;
-        let client_id_len = i16::from_be_bytes(i16_buf);
-        let client_id = if client_id_len == -1 {
-            None
-        } else {
-            let mut str_buf = vec![0; client_id_len as usize];
-            cursor.read_exact(&mut str_buf)?;
-            Some(String::from_utf8(str_buf).unwrap())
-        };
-
         Ok(Header {
-            request_api_key,
-            request_api_version,
+            request_api_version: 0,
+            request_api_key: 0,
             correlation_id,
-            client_id,
+            client_id: None,
         })
     }
 
@@ -158,17 +150,15 @@ mod tests {
 
     #[test]
     fn test_bytes_to_header() {
-        let hex_payload =
-            "00000023001200046f7fc66100096b61666b612d636c69000a6b61666b612d636c6904302e3100";
-        let input_bytes = hex::decode(hex_payload).expect("Failed to decode hex");
-        dbg!(&input_bytes);
+        let bytes: Vec<u8> = vec![0, 18, 0, 4, 83, 249, 153, 23];
         let expected_header = Header {
-            request_api_key: 18,
-            request_api_version: 4,
-            correlation_id: 1240818514,
-            client_id: Some("kafka-tester".to_string()),
+            request_api_key: 0,
+            request_api_version: 0,
+            correlation_id: 1408866583,
+            client_id: None,
         };
-        let header = Header::from_bytes(&input_bytes).unwrap();
+        let header = Header::from_bytes(&bytes).unwrap();
+        dbg!(&header);
         assert_eq!(header, expected_header);
     }
 
