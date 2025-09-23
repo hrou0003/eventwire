@@ -53,11 +53,10 @@ fn handle_connection(stream: &mut impl ReadWrite) {
             println!("sending response header {:?}", header);
 
             let response_bytes = response_header.to_bytes();
-            let response_len: i32 = 0;
 
             dbg!(&response_bytes);
 
-            if stream.write_all(&response_len.to_be_bytes()).is_err() {
+            if stream.write_all(&0_i32.to_be_bytes()).is_err() {
                 println!("Error writing response size");
                 return;
             }
