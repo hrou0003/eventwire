@@ -56,10 +56,22 @@ fn handle_connection(stream: &mut impl ReadWrite) {
 
             dbg!(&response_bytes);
 
-            if stream.write_all(&response_bytes).is_err() {
+            if stream.write_all(&0_i32.to_be_bytes()).is_err() {
                 println!("Error writing response size");
                 return;
             }
+
+            dbg!(0_i32.to_be_bytes());
+
+            if stream
+                .write_all(&header.correlation_id.to_be_bytes())
+                .is_err()
+            {
+                println!("Error writing response message");
+                return;
+            }
+            dbg!(&header.correlation_id.to_be_bytes());
+            println!("Wrote response message");
         }
         Err(e) => {
             println!("error: failed to deserialize header: {}", e);
