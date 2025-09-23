@@ -128,8 +128,9 @@ impl Header {
         buffer.extend_from_slice(&self.request_api_key.to_be_bytes());
         buffer.extend_from_slice(&self.request_api_version.to_be_bytes());
         buffer.extend_from_slice(&self.correlation_id.to_be_bytes());
-        buffer.extend_from_slice(&(-1i16).to_be_bytes());
-        buffer.push(0u8); // 0 tagged fields
+        if let Some(client_id) = &self.client_id {
+            buffer.extend_from_slice(&(client_id.len() as i16).to_be_bytes());
+        }
         buffer
     }
 }
