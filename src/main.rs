@@ -164,17 +164,15 @@ mod tests {
 
     #[test]
     fn test_header_to_bytes() {
-        let hex_payload =
-            "00000023001200046f7fc66100096b61666b612d636c69000a6b61666b612d636c6904302e3100";
-        let input_bytes = hex::decode(hex_payload).expect("Failed to decode hex");
-        let expected_header = Header {
-            request_api_key: 0x0012,
-            request_api_version: 0x0004,
-            correlation_id: 0x6f7fc661,
-            client_id: Some("kafka".to_string()),
+        let expected_bytes = vec![0, 0, 0, 0, 83, 249, 153, 23];
+        let header = Header {
+            request_api_key: 0,
+            request_api_version: 0,
+            correlation_id: 1408866583,
+            client_id: None,
         };
-        let expected_bytes = expected_header.to_bytes();
-        assert_eq!(input_bytes, expected_bytes);
+        let actual_bytes = header.to_bytes();
+        assert_eq!(actual_bytes, expected_bytes);
     }
 
     #[test]
