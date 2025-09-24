@@ -43,12 +43,11 @@ fn handle_connection(stream: &mut impl ReadWrite) {
         Ok(header) => {
             println!("Received header: {:?}", header);
 
-            let error_code = match header.request_api_key {
-                18 => 0,
-                4 => 35,
-                _ => 0,
+            let error_code = if (header.request_api_key == 18 && header.request_api_version <= 4) {
+                0
+            } else {
+                35
             };
-
             let response = Response {
                 message_size: (4 + 2 + (1 + 3 * (2 + 2 + 2 + 1)) + 4 + 1) as i32,
                 header: Header {
