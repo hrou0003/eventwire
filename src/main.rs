@@ -44,7 +44,7 @@ fn handle_connection(stream: &mut impl ReadWrite) {
             println!("Received header: {:?}", header);
 
             let response = Response {
-                message_size: (4 + 2 + (2 + (1 + 2 + 2 + 1)) + 4 + 1) as i32,
+                message_size: (4 + 2 + (1 + 3 * (2 + 2 + 2 + 1)) + 4 + 1) as i32,
                 header: Header {
                     request_api_key: 18,
                     request_api_version: header.request_api_version,
@@ -53,11 +53,23 @@ fn handle_connection(stream: &mut impl ReadWrite) {
                 },
                 body: Body {
                     error_code: 0,
-                    api_versions: vec![ApiVersion {
-                        api_key: 18,
-                        min_version: 1,
-                        max_version: 4,
-                    }],
+                    api_versions: vec![
+                        ApiVersion {
+                            api_key: 17,
+                            min_version: 0,
+                            max_version: 4,
+                        },
+                        ApiVersion {
+                            api_key: 18,
+                            min_version: 0,
+                            max_version: 4,
+                        },
+                        ApiVersion {
+                            api_key: 19,
+                            min_version: 0,
+                            max_version: 4,
+                        },
+                    ],
                     throttle_time: 0,
                     tags: vec![],
                 },
