@@ -43,6 +43,12 @@ fn handle_connection(stream: &mut impl ReadWrite) {
         Ok(header) => {
             println!("Received header: {:?}", header);
 
+            let error_code = match header.request_api_key {
+                18 => 0,
+                4 => 35,
+                _ => 0,
+            };
+
             let response = Response {
                 message_size: (4 + 2 + (1 + 3 * (2 + 2 + 2 + 1)) + 4 + 1) as i32,
                 header: Header {
@@ -52,7 +58,7 @@ fn handle_connection(stream: &mut impl ReadWrite) {
                     client_id: None,
                 },
                 body: Body {
-                    error_code: 0,
+                    error_code,
                     api_versions: vec![
                         ApiVersion {
                             api_key: 17,
