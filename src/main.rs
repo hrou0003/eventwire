@@ -44,7 +44,7 @@ fn handle_connection(stream: &mut impl ReadWrite) {
             println!("Received header: {:?}", header);
 
             let response = Response {
-                message_size: (4 + 2 + (2 + 2 + 2) + 4 + 2) as i32,
+                message_size: (4 + 2 + (2 + 2 + 2 + 2) + 4 + 2) as i32,
                 header: Header {
                     request_api_key: 18,
                     request_api_version: header.request_api_version,
