@@ -43,34 +43,23 @@ fn handle_connection(stream: &mut impl ReadWrite) {
         Ok(header) => {
             println!("Received header: {:?}", header);
 
-            let response_header = Header {
-                request_api_key: header.request_api_key,
-                request_api_version: header.request_api_version,
-                correlation_id: header.correlation_id,
-                client_id: None,
+            let response = Response {
+                message_size: 4_i32,
+                header: Header {
+                    request_api_key: header.request_api_key,
+                    request_api_version: header.request_api_version,
+                    correlation_id: header.correlation_id,
+                    client_id: None,
+                },
+                body: Body { error_code: 35 },
             };
 
-            println!("sending response header {:?}", header);
+            let response_bytes = response.to_be_bytes();
 
-            let response_bytes = response_header.to_bytes();
-
-            dbg!(&response_bytes);
-
-            if stream.write_all(&4_i32.to_be_bytes()).is_err() {
-                println!("Error writing response size");
-                return;
-            }
-
-            dbg!(0_i32.to_be_bytes());
-
-            if stream
-                .write_all(&header.correlation_id.to_be_bytes())
-                .is_err()
-            {
+            if stream.write_all(&response_bytes).is_err() {
                 println!("Error writing response message");
                 return;
             }
-            dbg!(&header.correlation_id.to_be_bytes());
             println!("Wrote response message");
         }
         Err(e) => {
@@ -87,6 +76,17 @@ impl<T: Read + Write> ReadWrite for T {}
 pub struct Response {
     pub message_size: i32,
     pub header: Header,
+    pub body: Body,
+}
+
+impl Response {
+    pub fn to_be_bytes(&self) -> Vec<u8> {
+        let mut buffer = Vec::new();
+        buffer.extend_from_slice(&self.message_size.to_be_bytes());
+        buffer.extend_from_slice(&self.header.to_be_bytes());
+        buffer.extend_from_slice(&self.body.to_be_bytes());
+        buffer
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -120,14 +120,21 @@ impl Header {
         })
     }
 
-    pub fn to_bytes(&self) -> Vec<u8> {
+    pub fn to_be_bytes(&self) -> Vec<u8> {
         let mut buffer = Vec::new();
-        buffer.extend_from_slice(&self.request_api_key.to_be_bytes());
-        buffer.extend_from_slice(&self.request_api_version.to_be_bytes());
         buffer.extend_from_slice(&self.correlation_id.to_be_bytes());
-        if let Some(client_id) = &self.client_id {
-            buffer.extend_from_slice(&(client_id.len() as i16).to_be_bytes());
-        }
+        buffer
+    }
+}
+
+pub struct Body {
+    pub error_code: i16,
+}
+
+impl Body {
+    pub fn to_be_bytes(&self) -> Vec<u8> {
+        let mut buffer = Vec::new();
+        buffer.extend_from_slice(&self.error_code.to_be_bytes());
         buffer
     }
 }
@@ -182,7 +189,7 @@ mod tests {
             correlation_id: 1408866583,
             client_id: None,
         };
-        let actual_bytes = header.to_bytes();
+        let actual_bytes = header.to_be_bytes();
         assert_eq!(actual_bytes, expected_bytes);
     }
 
@@ -201,14 +208,6 @@ mod tests {
 
         handle_connection(&mut stream);
 
-        // Based on the logic in to_bytes(), the response should contain:
-        // - api_key (i16): 0x0012
-        // - api_version (i16): 0x0004
-        // - correlation_id (i32): 0x6f7fc661
-        // - client_id_len (i16): -1 (0xffff) for None
-        // - tagged_fields (u8): 0 for zero tagged fields
-        // Total payload length is 2+2+4+2+1 = 11 bytes (0x0b)
-        // The full response is the size prefix + payload.
         let expected_hex_response = "0000000b001200046f7fc661ffff00";
         let expected_output = hex::decode(expected_hex_response).unwrap();
 
