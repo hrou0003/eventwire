@@ -46,12 +46,21 @@ fn handle_connection(stream: &mut impl ReadWrite) {
             let response = Response {
                 message_size: 6_i32,
                 header: Header {
-                    request_api_key: header.request_api_key,
+                    request_api_key: 18,
                     request_api_version: header.request_api_version,
                     correlation_id: header.correlation_id,
                     client_id: None,
                 },
-                body: Body { error_code: 35 },
+                body: Body {
+                    error_code: 35,
+                    api_versions: vec![ApiVersion {
+                        api_key: 18,
+                        min_version: 1,
+                        max_version: 4,
+                    }],
+                    tags: vec![],
+                    throttle_time: 0,
+                },
             };
 
             let response_bytes = response.to_be_bytes();
@@ -129,12 +138,36 @@ impl Header {
 
 pub struct Body {
     pub error_code: i16,
+    pub api_versions: Vec<ApiVersion>,
+    pub throttle_time: i32,
+    pub tags: Vec<u8>,
 }
 
 impl Body {
     pub fn to_be_bytes(&self) -> Vec<u8> {
         let mut buffer = Vec::new();
         buffer.extend_from_slice(&self.error_code.to_be_bytes());
+        for version in &self.api_versions {
+            buffer.extend_from_slice(&version.to_be_bytes());
+        }
+        buffer.extend_from_slice(&self.throttle_time.to_be_bytes());
+        buffer.extend_from_slice(&0_i8.to_be_bytes());
+        buffer
+    }
+}
+
+pub struct ApiVersion {
+    pub api_key: i16,
+    pub min_version: i16,
+    pub max_version: i16,
+}
+
+impl ApiVersion {
+    pub fn to_be_bytes(&self) -> Vec<u8> {
+        let mut buffer = Vec::new();
+        buffer.extend_from_slice(&self.api_key.to_be_bytes());
+        buffer.extend_from_slice(&self.min_version.to_be_bytes());
+        buffer.extend_from_slice(&self.max_version.to_be_bytes());
         buffer
     }
 }
