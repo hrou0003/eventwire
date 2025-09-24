@@ -170,6 +170,7 @@ impl ApiVersion {
         buffer.extend_from_slice(&self.api_key.to_be_bytes());
         buffer.extend_from_slice(&self.min_version.to_be_bytes());
         buffer.extend_from_slice(&self.max_version.to_be_bytes());
+        buffer.extend_from_slice(&0_i16.to_be_bytes());
         buffer
     }
 }
