@@ -43,11 +43,12 @@ fn handle_connection(stream: &mut impl ReadWrite) {
         Ok(header) => {
             println!("Received header: {:?}", header);
 
-            let error_code = if (header.request_api_key == 18 && header.request_api_version <= 4) {
+            let error_code = if header.request_api_key == 18 && header.request_api_version <= 4 {
                 0
             } else {
                 35
             };
+
             let response = Response {
                 message_size: (4 + 2 + (1 + 3 * (2 + 2 + 2 + 1)) + 4 + 1) as i32,
                 header: Header {
@@ -130,17 +131,17 @@ impl Header {
         let mut i32_buf = [0; 4];
 
         cursor.read_exact(&mut i16_buf)?;
-        let _ = i16::from_be_bytes(i16_buf);
+        let request_api_version = i16::from_be_bytes(i16_buf);
 
         cursor.read_exact(&mut i16_buf)?;
-        let _ = i16::from_be_bytes(i16_buf);
+        let request_api_key = i16::from_be_bytes(i16_buf);
 
         cursor.read_exact(&mut i32_buf)?;
         let correlation_id = i32::from_be_bytes(i32_buf);
 
         Ok(Header {
-            request_api_version: 0,
-            request_api_key: 0,
+            request_api_version,
+            request_api_key,
             correlation_id,
             client_id: None,
         })
