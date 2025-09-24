@@ -44,7 +44,7 @@ fn handle_connection(stream: &mut impl ReadWrite) {
             println!("Received header: {:?}", header);
 
             let response = Response {
-                message_size: (4 + 2 + (2 + 2 + 2 + 2) + 4 + 2) as i32,
+                message_size: (4 + 2 + (2 + (2 + 2 + 2 + 2)) + 4 + 2) as i32,
                 header: Header {
                     request_api_key: 18,
                     request_api_version: header.request_api_version,
@@ -147,7 +147,8 @@ impl Body {
     pub fn to_be_bytes(&self) -> Vec<u8> {
         let mut buffer = Vec::new();
         buffer.extend_from_slice(&self.error_code.to_be_bytes());
-        let array_len = self.api_versions.len() as u16 + 1;
+        let array_len = self.api_versions.len() as i8 + 1;
+        dbg!(&array_len);
         buffer.extend_from_slice(&array_len.to_be_bytes());
         for version in &self.api_versions {
             buffer.extend_from_slice(&version.to_be_bytes());
