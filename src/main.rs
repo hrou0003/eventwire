@@ -52,7 +52,7 @@ fn handle_connection(stream: &mut impl ReadWrite) {
                     client_id: None,
                 },
                 body: Body {
-                    error_code: 0,
+                    error_code: 35,
                     api_versions: vec![ApiVersion {
                         api_key: 18,
                         min_version: 1,
