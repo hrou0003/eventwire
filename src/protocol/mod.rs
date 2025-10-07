@@ -102,7 +102,7 @@ pub mod api_versions {
 
             buffer.extend_from_slice(&self.error_code.to_be_bytes());
 
-            let version_count = u16::try_from(self.api_versions.len())
+            let version_count = u16::try_from(self.api_versions.len() + 1)
                 .expect("api_versions length exceeds u16::MAX");
             buffer.extend_from_slice(&version_count.to_be_bytes());
 

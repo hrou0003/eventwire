@@ -9,16 +9,6 @@ pub struct ApiRegistry {
 }
 
 impl ApiRegistry {
-    #[allow(dead_code)]
-    pub fn new(supported: Vec<ApiVersion>) -> Self {
-        Self { supported }
-    }
-
-    #[allow(dead_code)]
-    pub fn supported_versions(&self) -> &[ApiVersion] {
-        &self.supported
-    }
-
     pub fn handle_versions(&self, request: ApiVersionsRequest) -> ApiVersionsResponse {
         if self.supports(request.api_key, request.api_version) {
             ApiVersionsResponse::success(request.correlation_id, &self.supported)
@@ -71,10 +61,7 @@ mod tests {
 
         let version_count =
             u16::from_be_bytes(bytes[11..13].try_into().expect("version count slice"));
-        assert_eq!(
-            usize::from(version_count),
-            registry.supported_versions().len()
-        );
+        assert_eq!(usize::from(version_count), registry.supported.len());
     }
 
     #[test]
