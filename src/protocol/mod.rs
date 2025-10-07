@@ -48,9 +48,8 @@ pub mod header {
 
     impl ResponseHeader {
         pub fn to_bytes(self) -> Vec<u8> {
-            let mut buffer = Vec::with_capacity(5);
+            let mut buffer = Vec::with_capacity(4);
             buffer.extend_from_slice(&self.correlation_id.to_be_bytes());
-            buffer.push(0);
             buffer
         }
     }
@@ -102,7 +101,7 @@ pub mod api_versions {
 
             buffer.extend_from_slice(&self.error_code.to_be_bytes());
 
-            let version_count = u16::try_from(self.api_versions.len() + 1)
+            let version_count = i8::try_from(self.api_versions.len() + 1)
                 .expect("api_versions length exceeds u16::MAX");
             buffer.extend_from_slice(&version_count.to_be_bytes());
 
@@ -147,7 +146,7 @@ pub mod api_versions {
             payload.extend_from_slice(&self.header.to_bytes());
             payload.extend_from_slice(&self.body.to_bytes());
 
-            let mut buffer = Vec::with_capacity(4 + payload.len());
+            let mut buffer = Vec::with_capacity(payload.len());
             buffer.extend_from_slice(&(payload.len() as u32).to_be_bytes());
             buffer.extend_from_slice(&payload);
             buffer
