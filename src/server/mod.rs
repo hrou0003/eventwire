@@ -10,6 +10,7 @@ pub fn run() -> io::Result<()> {
     println!("starting tcp listener on {LISTEN_ADDR}");
     let registry = ApiRegistry::default();
 
+    //
     let listener = TcpListener::bind(LISTEN_ADDR)?;
     println!("listener bound on {LISTEN_ADDR}");
 
